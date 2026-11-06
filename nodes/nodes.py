@@ -1563,6 +1563,11 @@ class MMH3UltimateUpscale(io.ComfyNode):
                     # the 3D upscaler is on the GPU during upscale; offload the
                     # diffusion model so they don't reside simultaneously
                     comfy.model_management.unload_model_and_clones(model, unload_additional_models=False)
+                    # local fix (videoCreator, 2026-10-14): the upscaler is a plain torch model
+                    # ComfyUI's memory manager cannot see, so evict EVERY ComfyUI model (the
+                    # ~15 GB text encoder and both VAEs stay resident otherwise) before it runs.
+                    # On the 16 GB 4080S that resident set is what made 90+ frames OOM here.
+                    comfy.model_management.unload_all_models()
                     comfy.model_management.soft_empty_cache()
                 chunk_v, _, _ = upscale_latent(chunk_v, latent_upscale_param)
                 upscaled = True
